@@ -146,8 +146,7 @@ public class CatalogsPageTest extends AbstractWebIT {
   @Test
   @Order(8)
   public void testClickTableLink() {
-    catalogsPage.clickTableLink(
-        metalakeName, modifiedCatalogName, catalogType, schemaName, tableName);
+    catalogsPage.clickTableLink(metalakeName, modifiedCatalogName, catalogType, schemaName, tableName);
     Assertions.assertTrue(catalogsPage.verifyShowTableTitle("Columns"));
     Assertions.assertTrue(catalogsPage.verifyTableColumns());
   }
