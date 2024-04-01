@@ -14,13 +14,15 @@ import { DataGrid } from '@mui/x-data-grid'
 import {
   VisibilityOutlined as ViewIcon,
   EditOutlined as EditIcon,
-  DeleteOutlined as DeleteIcon
+  DeleteOutlined as DeleteIcon,
+  AddOutlined as AddIcon
 } from '@mui/icons-material'
 
 import ColumnTypeChip from '@/components/ColumnTypeChip'
 import DetailsDrawer from '@/components/DetailsDrawer'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog'
 import CreateCatalogDialog from '../../CreateCatalogDialog'
+import AddTagsForColumnDialog from '../../AddTagsForColumnDialog'
 
 import { useAppSelector, useAppDispatch } from '@/lib/hooks/useStore'
 import { updateCatalog, deleteCatalog } from '@/lib/store/metalakes'
@@ -56,6 +58,8 @@ const TableView = () => {
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
   const [dialogData, setDialogData] = useState({})
+  const [rowData, setRowData] = useState({})
+  const [openAddTagsDialog, setOpenAddTagsDialog] = useState(false)
   const [dialogType, setDialogType] = useState('create')
 
   const handleClickUrl = path => {
@@ -283,6 +287,38 @@ const TableView = () => {
     },
     {
       flex: 0.1,
+      minWidth: 100,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'tags',
+      headerName: 'Tags',
+      renderCell: ({ row }) => {
+        const { tags } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+            {tags ? (
+              tags.map(t => {
+                return <ColumnTypeChip key={t} type={t} />
+              })
+            ) : (
+              <EmptyText />
+            )}
+            <IconButton
+              title='Add tags'
+              size='small'
+              sx={{ color: theme => theme.palette.text.secondary }}
+              onClick={() => handleAddTagsDialog(row)}
+              data-refer={`add-tags-${row.name}`}
+            >
+              <AddIcon />
+            </IconButton>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
       minWidth: 60,
       disableColumnMenu: true,
       type: 'string',
@@ -308,6 +344,529 @@ const TableView = () => {
           </Box>
         ) : (
           <EmptyText />
+        )
+      }
+    }
+  ]
+
+  const tagListColumns = [
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'name',
+      headerName: 'Name',
+      renderCell: ({ row }) => {
+        const { name } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={name}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {name}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'description',
+      headerName: 'Description',
+      renderCell: ({ row }) => {
+        const { description } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={description}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {description}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'createdBy',
+      headerName: 'Created By',
+      renderCell: ({ row }) => {
+        const { createdBy } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {createdBy}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'createdTime',
+      headerName: 'Created Time',
+      renderCell: ({ row }) => {
+        const { createdTime } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {new Date(createdTime).toLocaleDateString()}
+            </Typography>
+          </Box>
+        )
+      }
+    }
+  ]
+
+  const maskListColumns = [
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'name',
+      headerName: 'Name',
+      renderCell: ({ row }) => {
+        const { name } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={name}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {name}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'dataType',
+      headerName: 'Data Type',
+      renderCell: ({ row }) => {
+        const { dataType } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <ColumnTypeChip type={dataType} />
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'expression',
+      headerName: 'Expression',
+      renderCell: ({ row }) => {
+        const { expression } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={expression}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {expression}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'description',
+      headerName: 'Description',
+      renderCell: ({ row }) => {
+        const { description } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={description}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {description}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'createdTime',
+      headerName: 'Created Time',
+      renderCell: ({ row }) => {
+        const { createdTime } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {new Date(createdTime).toLocaleDateString()}
+            </Typography>
+          </Box>
+        )
+      }
+    }
+  ]
+
+  const rowFilterListColumns = [
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'name',
+      headerName: 'Name',
+      renderCell: ({ row }) => {
+        const { name } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={name}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {name}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'expression',
+      headerName: 'Expression',
+      renderCell: ({ row }) => {
+        const { expression } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={expression}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {expression}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'description',
+      headerName: 'Description',
+      renderCell: ({ row }) => {
+        const { description } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={description}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {description}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'createdTime',
+      headerName: 'Created Time',
+      renderCell: ({ row }) => {
+        const { createdTime } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {new Date(createdTime).toLocaleDateString()}
+            </Typography>
+          </Box>
+        )
+      }
+    }
+  ]
+
+  const policyListColumns = [
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'name',
+      headerName: 'Name',
+      renderCell: ({ row }) => {
+        const { name } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={name}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {name}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'description',
+      headerName: 'Description',
+      renderCell: ({ row }) => {
+        const { description } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={description}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {description}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'scope',
+      headerName: 'Scope',
+      renderCell: ({ row }) => {
+        const { scope } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={scope ? `${scope.catalog}.${scope.schema}.${scope.table}` : ''}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {scope ? `${scope.catalog}.${scope.schema}.${scope.table}` : ''}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'expression',
+      headerName: 'Expression',
+      renderCell: ({ row }) => {
+        const { expression } = row
+
+        return (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography
+              title={expression}
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {expression}
+            </Typography>
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'columnMask',
+      headerName: 'Column Mask',
+      renderCell: ({ row }) => {
+        const { columnMask } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {columnMask &&
+              columnMask.map(m => {
+                return <ColumnTypeChip key={m} type={m} />
+              })}
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'rowFilter',
+      headerName: 'Row Filter',
+      renderCell: ({ row }) => {
+        const { rowFilter } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {rowFilter &&
+              rowFilter.map(f => {
+                return <ColumnTypeChip key={f} type={f} />
+              })}
+          </Box>
+        )
+      }
+    },
+    {
+      flex: 0.1,
+      minWidth: 60,
+      disableColumnMenu: true,
+      type: 'string',
+      field: 'createdTime',
+      headerName: 'Created Time',
+      renderCell: ({ row }) => {
+        const { createdTime } = row
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 400,
+                color: 'text.main',
+                textDecoration: 'none'
+              }}
+            >
+              {new Date(createdTime).toLocaleDateString()}
+            </Typography>
+          </Box>
         )
       }
     }
@@ -365,11 +924,24 @@ const TableView = () => {
     }
   }
 
+  const handleAddTagsDialog = row => {
+    setOpenAddTagsDialog(true)
+    setRowData(row)
+  }
+
   const checkColumns = () => {
     if (paramsSize == 1 && searchParams.has('metalake')) {
       return catalogsColumns
     } else if (paramsSize == 5 && searchParams.has('table')) {
       return tableColumns
+    } else if (paramsSize == 2 && searchParams.get('compliance') === 'Tag') {
+      return tagListColumns
+    } else if (paramsSize == 2 && searchParams.get('compliance') === 'Column_Mask') {
+      return maskListColumns
+    } else if (paramsSize == 2 && searchParams.get('compliance') === 'Row_Filter') {
+      return rowFilterListColumns
+    } else if (paramsSize == 2 && searchParams.get('compliance') === 'Access_Policy') {
+      return policyListColumns
     } else {
       return columns
     }
@@ -421,6 +993,8 @@ const TableView = () => {
         data={dialogData}
         type={dialogType}
       />
+
+      <AddTagsForColumnDialog open={openAddTagsDialog} setOpen={setOpenAddTagsDialog} rowData={rowData} />
     </Box>
   )
 }

@@ -11,23 +11,51 @@ import { Box, Button, IconButton } from '@mui/material'
 import Icon from '@/components/Icon'
 import MetalakePath from './MetalakePath'
 import CreateCatalogDialog from './CreateCatalogDialog'
+import CreateTagDialog from './CreateTagDialog'
+import CreateColumnMaskDialog from './CreateColumnMaskDialog'
+import CreateRowFilterDialog from './CreateRowFilterDialog'
+import CreateAccessPolicyDialog from './CreateAccessPolicyDialog'
 import TabsContent from './tabsContent/TabsContent'
 import { useSearchParams } from 'next/navigation'
 
 const RightContent = () => {
-  const [open, setOpen] = useState(false)
+  const [open, setOpenCatalog] = useState(false)
+  const [openTag, setOpenTag] = useState(false)
+  const [openColumnMask, setOpenColumnMask] = useState(false)
+  const [openRowFilter, setOpenRowFilter] = useState(false)
+  const [openAccessPolicy, setOpenAccessPolicy] = useState(false)
   const searchParams = useSearchParams()
+  const paramsSize = [...searchParams.keys()].length
+  const isMetalakePage = paramsSize == 1 && searchParams.get('metalake')
+  const compliance = searchParams.get('compliance')
   const [isShowBtn, setBtnVisiable] = useState(true)
 
-  const handleCreateCatalog = () => {
-    setOpen(true)
+  const handleCreateDialog = () => {
+    if (isMetalakePage) {
+      setOpenCatalog(true)
+    } else {
+      switch (compliance) {
+        case 'Tag':
+          setOpenTag(true)
+          break
+        case 'Column_Mask':
+          setOpenColumnMask(true)
+          break
+        case 'Row_Filter':
+          setOpenRowFilter(true)
+          break
+        case 'Access_Policy':
+          setOpenAccessPolicy(true)
+          break
+        default:
+          break
+      }
+    }
   }
 
   useEffect(() => {
-    const paramsSize = [...searchParams.keys()].length
-    const isMetalakePage = paramsSize == 1 && searchParams.get('metalake')
-    setBtnVisiable(isMetalakePage)
-  }, [searchParams])
+    setBtnVisiable(isMetalakePage || compliance)
+  }, [searchParams, isMetalakePage, compliance])
 
   return (
     <Box className={`twc-w-0 twc-grow twc-h-full twc-bg-customs-white twc-overflow-hidden`}>
@@ -53,12 +81,16 @@ const RightContent = () => {
             <Button
               variant='contained'
               startIcon={<Icon icon='mdi:plus-box' />}
-              onClick={handleCreateCatalog}
+              onClick={handleCreateDialog}
               data-refer='create-catalog-btn'
             >
-              Create Catalog
+              Create {isMetalakePage ? 'Catalog' : compliance}
             </Button>
-            <CreateCatalogDialog open={open} setOpen={setOpen} />
+            <CreateCatalogDialog open={open} setOpen={setOpenCatalog} />
+            <CreateTagDialog open={openTag} setOpen={setOpenTag} />
+            <CreateColumnMaskDialog open={openColumnMask} setOpen={setOpenColumnMask} />
+            <CreateRowFilterDialog open={openRowFilter} setOpen={setOpenRowFilter} />
+            <CreateAccessPolicyDialog open={openAccessPolicy} setOpen={setOpenAccessPolicy} />
           </Box>
         )}
       </Box>

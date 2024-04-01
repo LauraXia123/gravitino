@@ -19,6 +19,14 @@ import {
 } from '@/lib/api/metalakes'
 
 import {
+  getComplianceListApi,
+  createTagApi,
+  createColumnMaskApi,
+  createRowFilterApi,
+  createAccessPolicyApi
+} from '@/lib/api/compliances'
+
+import {
   getCatalogsApi,
   getCatalogDetailsApi,
   createCatalogApi,
@@ -79,18 +87,18 @@ export const updateMetalake = createAsyncThunk('appMetalakes/updateMetalake', as
 
 export const setIntoTreeNodeWithFetch = createAsyncThunk(
   'appMetalakes/setIntoTreeNodeWithFetch',
-  async ({ key }, { getState, dispatch }) => {
+  async ({ key, metalakeFromRouter }, { getState, dispatch }) => {
     let result = {
       key,
       data: [],
-      tree: getState().metalakes.metalakeTree
+      tree: getState().metalakes.metalakeTree[0].children
     }
 
     const pathArr = extractPlaceholder(key)
     const [metalake, catalog, type, schema] = pathArr
 
-    if (pathArr.length === 1) {
-      const [err, res] = await to(getCatalogsApi({ metalake }))
+    if (pathArr.length === 1 || key === 'dataCatalogSubTree') {
+      const [err, res] = await to(getCatalogsApi({ metalake: metalakeFromRouter }))
 
       if (err || !res) {
         throw new Error(err)
@@ -184,6 +192,48 @@ export const setIntoTreeNodeWithFetch = createAsyncThunk(
   }
 )
 
+export const setIntoComplianceTreeNodeWithFetch = createAsyncThunk(
+  'appMetalakes/setIntoComplianceTreeNodeWithFetch',
+  async ({ metalake }) => {
+    const dataCompliance = [
+      {
+        title: 'Tag',
+        node: 'tag',
+        id: `{{${metalake}}}{{Tag}}`,
+        key: `{{${metalake}}}{{Tag}}`,
+        path: `?${new URLSearchParams({ metalake, compliance: 'Tag' }).toString()}`,
+        isLeaf: true
+      },
+      {
+        title: 'Column mask',
+        node: 'columnMask',
+        id: `{{${metalake}}}{{Column_Mask}}`,
+        key: `{{${metalake}}}{{Column_Mask}}`,
+        path: `?${new URLSearchParams({ metalake, compliance: 'Column_Mask' }).toString()}`,
+        isLeaf: true
+      },
+      {
+        title: 'Row filter',
+        node: 'rowFilter',
+        id: `{{${metalake}}}{{Row_Filter}}`,
+        key: `{{${metalake}}}{{Row_Filter}}`,
+        path: `?${new URLSearchParams({ metalake, compliance: 'Row_Filter' }).toString()}`,
+        isLeaf: true
+      },
+      {
+        title: 'Access policy',
+        node: 'accessPolicy',
+        id: `{{${metalake}}}{{Access_Policy}}`,
+        key: `{{${metalake}}}{{Access_Policy}}`,
+        path: `?${new URLSearchParams({ metalake, compliance: 'Access_Policy' }).toString()}`,
+        isLeaf: true
+      }
+    ]
+
+    return dataCompliance
+  }
+)
+
 export const getMetalakeDetails = createAsyncThunk('appMetalakes/getMetalakeDetails', async ({ metalake }) => {
   const [err, res] = await to(getMetalakeDetailsApi(metalake))
 
@@ -195,6 +245,27 @@ export const getMetalakeDetails = createAsyncThunk('appMetalakes/getMetalakeDeta
 
   return resMetalake
 })
+
+export const fetchComplianceList = createAsyncThunk(
+  'appMetalakes/fetchComplianceList',
+  async ({ init, metalake, compliance }, { getState, dispatch }) => {
+    dispatch(setTableLoading(true))
+    const [err, res] = await to(getComplianceListApi({ metalake, compliance }))
+    dispatch(setTableLoading(false))
+
+    if (err || !res) {
+      throw new Error(err)
+    }
+
+    if (getState().metalakes.metalakeTree[1].children.length === 0) {
+      dispatch(setIntoComplianceTreeNodeWithFetch({ metalake }))
+    }
+
+    init && dispatch(setExpandedNodes(['dataComplianceSubTree', `{{${metalake}}}{{${compliance}}}`]))
+
+    return { init, type: compliance, data: res }
+  }
+)
 
 export const fetchCatalogs = createAsyncThunk(
   'appMetalakes/fetchCatalogs',
@@ -232,7 +303,7 @@ export const fetchCatalogs = createAsyncThunk(
     if (init) {
       if (update && update.catalog) {
         if (update.catalog !== update.newCatalog.name) {
-          const tree = getState().metalakes.metalakeTree.map(catalog => {
+          const tree = getState().metalakes.metalakeTree[0].children.map(catalog => {
             if (catalog.name === update.catalog) {
               const schemas = catalog.children
                 ? catalog.children.map(schema => {
@@ -288,7 +359,7 @@ export const fetchCatalogs = createAsyncThunk(
             }
           })
 
-          dispatch(setMetalakeTree(tree))
+          dispatch(setDataCatalogTree(tree))
 
           const expandedNodes = getState().metalakes.expandedNodes.map(node => {
             const [metalake, catalog, schema, table] = extractPlaceholder(node)
@@ -304,7 +375,7 @@ export const fetchCatalogs = createAsyncThunk(
           })
 
           const expanded = expandedNodes.filter(i => !i.startsWith(`{{${metalake}}}{{${update.catalog}}}`))
-          dispatch(setExpanded(expanded))
+          dispatch(setExpanded(['dataCatalogSubTree', ...expanded]))
 
           const loadedNodes = getState().metalakes.loadedNodes.map(node => {
             const [metalake, catalog, schema, table] = extractPlaceholder(node)
@@ -324,9 +395,9 @@ export const fetchCatalogs = createAsyncThunk(
         }
       } else {
         const mergedTree = _.values(
-          _.merge(_.keyBy(catalogsData, 'key'), _.keyBy(getState().metalakes.metalakeTree, 'key'))
+          _.merge(_.keyBy(catalogsData, 'key'), _.keyBy(getState().metalakes.metalakeTree[0].children, 'key'))
         )
-        dispatch(setMetalakeTree(mergedTree))
+        dispatch(setDataCatalogTree(mergedTree))
       }
     }
 
@@ -416,6 +487,63 @@ export const deleteCatalog = createAsyncThunk(
   }
 )
 
+export const createTag = createAsyncThunk('appMetalakes/createTag', async ({ data, metalake }, { dispatch }) => {
+  dispatch(setTableLoading(true))
+  const [err, res] = await to(createTagApi({ data, metalake }))
+  dispatch(setTableLoading(false))
+
+  if (err || !res) {
+    return { err: true }
+  }
+
+  return res
+})
+
+export const createColumnMask = createAsyncThunk(
+  'appMetalakes/createColumnMask',
+  async ({ data, metalake }, { dispatch }) => {
+    dispatch(setTableLoading(true))
+    const [err, res] = await to(createColumnMaskApi({ data, metalake }))
+    dispatch(setTableLoading(false))
+
+    if (err || !res) {
+      return { err: true }
+    }
+
+    return res
+  }
+)
+
+export const createRowFilter = createAsyncThunk(
+  'appMetalakes/createRowFilter',
+  async ({ data, metalake }, { dispatch }) => {
+    dispatch(setTableLoading(true))
+    const [err, res] = await to(createRowFilterApi({ data, metalake }))
+    dispatch(setTableLoading(false))
+
+    if (err || !res) {
+      return { err: true }
+    }
+
+    return res
+  }
+)
+
+export const createAccessPolicy = createAsyncThunk(
+  'appMetalakes/createAccessPolicy',
+  async ({ data, metalake }, { dispatch }) => {
+    dispatch(setTableLoading(true))
+    const [err, res] = await to(createAccessPolicyApi({ data, metalake }))
+    dispatch(setTableLoading(false))
+
+    if (err || !res) {
+      return { err: true }
+    }
+
+    return res
+  }
+)
+
 export const fetchSchemas = createAsyncThunk(
   'appMetalakes/fetchSchemas',
   async ({ init, page, metalake, catalog, type }, { getState, dispatch }) => {
@@ -434,7 +562,7 @@ export const fetchSchemas = createAsyncThunk(
 
     const schemas = identifiers.map(schema => {
       const schemaItem = findInTree(
-        getState().metalakes.metalakeTree,
+        getState().metalakes.metalakeTree[0].children,
         'key',
         `{{${metalake}}}{{${catalog}}}{{${type}}}{{${schema.name}}}`
       )
@@ -447,6 +575,7 @@ export const fetchSchemas = createAsyncThunk(
         path: `?${new URLSearchParams({ metalake, catalog, type, schema: schema.name }).toString()}`,
         name: schema.name,
         title: schema.name,
+        catalogType: type,
         tables: schemaItem ? schemaItem.children : [],
         children: schemaItem ? schemaItem.children : []
       }
@@ -457,16 +586,17 @@ export const fetchSchemas = createAsyncThunk(
         setIntoTreeNodes({
           key: `{{${metalake}}}{{${catalog}}}{{${type}}}`,
           data: schemas,
-          tree: getState().metalakes.metalakeTree
+          tree: getState().metalakes.metalakeTree[0].children
         })
       )
     }
 
-    if (getState().metalakes.metalakeTree.length === 0) {
+    if (getState().metalakes.metalakeTree[0].children.length === 0) {
       dispatch(fetchCatalogs({ metalake }))
     }
 
-    dispatch(setExpandedNodes([`{{${metalake}}}`, `{{${metalake}}}{{${catalog}}}{{${type}}}`]))
+    init &&
+      dispatch(setExpandedNodes(['dataCatalogSubTree', `{{${metalake}}}`, `{{${metalake}}}{{${catalog}}}{{${type}}}`]))
 
     return { schemas, page, init }
   }
@@ -532,22 +662,24 @@ export const fetchTables = createAsyncThunk(
         setIntoTreeNodes({
           key: `{{${metalake}}}{{${catalog}}}{{${'relational'}}}{{${schema}}}`,
           data: tables,
-          tree: getState().metalakes.metalakeTree
+          tree: getState().metalakes.metalakeTree[0].children
         })
       )
     }
 
-    if (getState().metalakes.metalakeTree.length === 0) {
+    if (getState().metalakes.metalakeTree[0].children.length === 0) {
       dispatch(fetchCatalogs({ metalake }))
     }
 
-    dispatch(
-      setExpandedNodes([
-        `{{${metalake}}}`,
-        `{{${metalake}}}{{${catalog}}}{{${'relational'}}}`,
-        `{{${metalake}}}{{${catalog}}}{{${'relational'}}}{{${schema}}}`
-      ])
-    )
+    init &&
+      dispatch(
+        setExpandedNodes([
+          'dataCatalogSubTree',
+          `{{${metalake}}}`,
+          `{{${metalake}}}{{${catalog}}}{{${'relational'}}}`,
+          `{{${metalake}}}{{${catalog}}}{{${'relational'}}}{{${schema}}}`
+        ])
+      )
 
     return { tables, page, init }
   }
@@ -570,12 +702,13 @@ export const getTableDetails = createAsyncThunk(
 
     const { table: resTable } = res
 
-    if (getState().metalakes.metalakeTree.length === 0) {
+    if (getState().metalakes.metalakeTree[0].children.length === 0) {
       dispatch(fetchCatalogs({ metalake }))
     }
 
     dispatch(
       setExpandedNodes([
+        'dataCatalogSubTree',
         `{{${metalake}}}`,
         `{{${metalake}}}{{${catalog}}}{{${'relational'}}}`,
         `{{${metalake}}}{{${catalog}}}{{${'relational'}}}{{${schema}}}`
@@ -583,6 +716,23 @@ export const getTableDetails = createAsyncThunk(
     )
 
     return resTable
+  }
+)
+
+export const addTagForColumn = createAsyncThunk(
+  'appMetalakes/addTagForColumn',
+  async ({ data, column }, { getState }) => {
+    const columns = getState().metalakes.tableData.map(c => {
+      if (c.name === column) {
+        const oldTags = c.tags || []
+
+        return { ...c, tags: [...oldTags, ...data.tags] }
+      } else {
+        return c
+      }
+    })
+
+    return columns
   }
 )
 
@@ -630,22 +780,24 @@ export const fetchFilesets = createAsyncThunk(
         setIntoTreeNodes({
           key: `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}{{${schema}}}`,
           data: filesets,
-          tree: getState().metalakes.metalakeTree
+          tree: getState().metalakes.metalakeTree[0].children
         })
       )
     }
 
-    if (getState().metalakes.metalakeTree.length === 0) {
+    if (getState().metalakes.metalakeTree[0].children.length === 0) {
       dispatch(fetchCatalogs({ metalake }))
     }
 
-    dispatch(
-      setExpandedNodes([
-        `{{${metalake}}}`,
-        `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}`,
-        `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}{{${schema}}}`
-      ])
-    )
+    init &&
+      dispatch(
+        setExpandedNodes([
+          'dataCatalogSubTree',
+          `{{${metalake}}}`,
+          `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}`,
+          `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}{{${schema}}}`
+        ])
+      )
 
     return { filesets, page, init }
   }
@@ -668,12 +820,13 @@ export const getFilesetDetails = createAsyncThunk(
 
     const { fileset: resFileset } = res
 
-    if (getState().metalakes.metalakeTree.length === 0) {
+    if (getState().metalakes.metalakeTree[0].children.length === 0) {
       dispatch(fetchCatalogs({ metalake }))
     }
 
     dispatch(
       setExpandedNodes([
+        'dataCatalogSubTree',
         `{{${metalake}}}`,
         `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}`,
         `{{${metalake}}}{{${catalog}}}{{${'fileset'}}}{{${schema}}}`
@@ -690,12 +843,31 @@ export const appMetalakesSlice = createSlice({
     metalakes: [],
     filteredMetalakes: [],
     tableData: [],
+    Tag: [],
+    Column_Mask: [],
+    Row_Filter: [],
+    Access_Policy: [],
     catalogs: [],
     schemas: [],
     tables: [],
     columns: [],
     filesets: [],
-    metalakeTree: [],
+    metalakeTree: [
+      {
+        title: 'Data Catalog',
+        node: 'dataCatalogSubTree',
+        id: 'dataCatalogSubTree',
+        key: 'dataCatalogSubTree',
+        children: []
+      },
+      {
+        title: 'Data Compliance',
+        node: 'dataComplianceSubTree',
+        id: 'dataComplianceSubTree',
+        key: 'dataComplianceSubTree',
+        children: []
+      }
+    ],
     loadedNodes: [],
     selectedNodes: [],
     expandedNodes: [],
@@ -707,8 +879,9 @@ export const appMetalakesSlice = createSlice({
     setFilteredMetalakes(state, action) {
       state.filteredMetalakes = action.payload
     },
-    setMetalakeTree(state, action) {
-      state.metalakeTree = action.payload
+    setDataCatalogTree(state, action) {
+      state.expandedNodes = ['dataCatalogSubTree']
+      state.metalakeTree[0].children = action.payload
     },
     setLoadedNodes(state, action) {
       state.loadedNodes = action.payload
@@ -735,12 +908,31 @@ export const appMetalakesSlice = createSlice({
       state.tableData = []
     },
     resetTree(state, action) {
-      state.metalakeTree = []
+      state.metalakeTree = [
+        {
+          title: 'Data Catalog',
+          node: 'dataCatalogSubTree',
+          id: 'dataCatalogSubTree',
+          key: 'dataCatalogSubTree',
+          children: []
+        },
+        {
+          title: 'Data Compliance',
+          node: 'dataComplianceSubTree',
+          id: 'dataComplianceSubTree',
+          key: 'dataComplianceSubTree',
+          children: []
+        }
+      ]
       state.expandedNodes = []
       state.selectedNodes = []
       state.loadedNodes = []
 
       state.tableData = []
+      state.Tag = []
+      state.Column_Mask = []
+      state.Row_Filter = []
+      state.Access_Policy = []
       state.catalogs = []
       state.schemas = []
       state.tables = []
@@ -755,18 +947,18 @@ export const appMetalakesSlice = createSlice({
     },
     setIntoTreeNodes(state, action) {
       const { key, data, tree } = action.payload
-      state.metalakeTree = updateTreeData(tree, key, data)
+      state.metalakeTree[0].children = updateTreeData(tree, key, data)
     },
     addCatalogToTree(state, action) {
-      const catalogIndex = state.metalakeTree.findIndex(c => c.key === action.payload.key)
+      const catalogIndex = state.metalakeTree[0].children.findIndex(c => c.key === action.payload.key)
       if (catalogIndex === -1) {
-        state.metalakeTree.push(action.payload)
+        state.metalakeTree[0].children.push(action.payload)
       } else {
-        state.metalakeTree.splice(catalogIndex, 1, action.payload)
+        state.metalakeTree[0].children.splice(catalogIndex, 1, action.payload)
       }
     },
     removeCatalogFromTree(state, action) {
-      state.metalakeTree = state.metalakeTree.filter(i => i.key !== action.payload)
+      state.metalakeTree[0].children = state.metalakeTree[0].children.filter(i => i.key !== action.payload)
     },
     resetMetalakeStore(state, action) {}
   },
@@ -779,15 +971,64 @@ export const appMetalakesSlice = createSlice({
     })
     builder.addCase(setIntoTreeNodeWithFetch.fulfilled, (state, action) => {
       const { key, data, tree } = action.payload
-      state.metalakeTree = updateTreeData(tree, key, data)
+      if (key === 'dataCatalogSubTree') {
+        state.metalakeTree[0].children = data
+      } else {
+        state.metalakeTree[0].children = updateTreeData(tree, key, data)
+      }
     })
     builder.addCase(setIntoTreeNodeWithFetch.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(setIntoComplianceTreeNodeWithFetch.fulfilled, (state, action) => {
+      state.metalakeTree[1].children = action.payload
+    })
+    builder.addCase(setIntoComplianceTreeNodeWithFetch.rejected, (state, action) => {
       toast.error(action.error.message)
     })
     builder.addCase(getMetalakeDetails.fulfilled, (state, action) => {
       state.activatedDetails = action.payload
     })
     builder.addCase(getMetalakeDetails.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(fetchComplianceList.fulfilled, (state, action) => {
+      if (!state[action.payload.type].length) {
+        state[action.payload.type] = action.payload.data
+      }
+      if (action.payload.init) {
+        state.tableData = state[action.payload.type]
+      }
+    })
+    builder.addCase(fetchComplianceList.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(createTag.fulfilled, (state, action) => {
+      state.Tag.push(action.payload)
+      state.tableData.push(action.payload)
+    })
+    builder.addCase(createTag.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(createColumnMask.fulfilled, (state, action) => {
+      state.Column_Mask.push(action.payload)
+      state.tableData.push(action.payload)
+    })
+    builder.addCase(createColumnMask.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(createRowFilter.fulfilled, (state, action) => {
+      state.Row_Filter.push(action.payload)
+      state.tableData.push(action.payload)
+    })
+    builder.addCase(createRowFilter.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
+    builder.addCase(createAccessPolicy.fulfilled, (state, action) => {
+      state.Access_Policy.push(action.payload)
+      state.tableData.push(action.payload)
+    })
+    builder.addCase(createAccessPolicy.rejected, (state, action) => {
       toast.error(action.error.message)
     })
     builder.addCase(createCatalog.rejected, (state, action) => {
@@ -803,8 +1044,8 @@ export const appMetalakesSlice = createSlice({
         state.tableData = action.payload.catalogs
       }
 
-      if (state.metalakeTree.length === 0) {
-        state.metalakeTree = action.payload.catalogs
+      if (state.metalakeTree[0].children.length === 0) {
+        state.metalakeTree[0].children = action.payload.catalogs
       }
     })
     builder.addCase(fetchCatalogs.rejected, (state, action) => {
@@ -843,6 +1084,12 @@ export const appMetalakesSlice = createSlice({
     builder.addCase(fetchTables.rejected, (state, action) => {
       toast.error(action.error.message)
     })
+    builder.addCase(addTagForColumn.fulfilled, (state, action) => {
+      state.tableData = action.payload
+    })
+    builder.addCase(addTagForColumn.rejected, (state, action) => {
+      toast.error(action.error.message)
+    })
     builder.addCase(getTableDetails.fulfilled, (state, action) => {
       state.activatedDetails = action.payload
       state.tableData = action.payload.columns || []
@@ -871,7 +1118,7 @@ export const appMetalakesSlice = createSlice({
 
 export const {
   setFilteredMetalakes,
-  setMetalakeTree,
+  setDataCatalogTree,
   setSelectedNodes,
   removeExpandedNode,
   resetMetalakeStore,

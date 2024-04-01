@@ -23,6 +23,7 @@ const MetalakePath = props => {
 
   const routeParams = {
     metalake: searchParams.get('metalake'),
+    compliance: searchParams.get('compliance'),
     catalog: searchParams.get('catalog'),
     type: searchParams.get('type'),
     schema: searchParams.get('schema'),
@@ -30,9 +31,10 @@ const MetalakePath = props => {
     fileset: searchParams.get('fileset')
   }
 
-  const { metalake, catalog, type, schema, table, fileset } = routeParams
+  const { metalake, compliance, catalog, type, schema, table, fileset } = routeParams
 
   const metalakeUrl = `?metalake=${metalake}`
+  const complianceUrl = `?metalake=${metalake}&compliance=${compliance}`
   const catalogUrl = `?metalake=${metalake}&catalog=${catalog}&type=${type}`
   const schemaUrl = `?metalake=${metalake}&catalog=${catalog}&type=${type}&schema=${schema}`
   const tableUrl = `?metalake=${metalake}&catalog=${catalog}&type=${type}&schema=${schema}&table=${table}`
@@ -75,6 +77,19 @@ const MetalakePath = props => {
           >
             <Icon icon='bx:book' fontSize={20} />
             <Text data-refer={`nav-to-catalog-${catalog}`}>{catalog}</Text>
+          </MUILink>
+        </Tooltip>
+      )}
+      {compliance && (
+        <Tooltip title={compliance} placement='top'>
+          <MUILink
+            component={Link}
+            href={complianceUrl}
+            onClick={event => handleClick(event, complianceUrl)}
+            underline='hover'
+          >
+            <Icon icon='bx:filter' fontSize={20} />
+            <Text data-refer={`nav-to-compliance-${compliance}`}>{compliance}</Text>
           </MUILink>
         </Tooltip>
       )}

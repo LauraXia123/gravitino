@@ -43,7 +43,7 @@ const AppBar = () => {
     }
     const metalakeItems = store.metalakes.map(i => i.name)
     setMetalakes(metalakeItems)
-  }, [store.metalakes])
+  }, [store.metalakes, dispatch])
 
   return (
     <MuiAppBar

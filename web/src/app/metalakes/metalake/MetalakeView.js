@@ -15,6 +15,7 @@ import MetalakePageLeftBar from './MetalakePageLeftBar'
 import RightContent from './rightContent/RightContent'
 
 import {
+  fetchComplianceList,
   fetchCatalogs,
   fetchSchemas,
   fetchTables,
@@ -26,7 +27,6 @@ import {
   getFilesetDetails,
   setSelectedNodes
 } from '@/lib/store/metalakes'
-import { type } from 'os'
 
 const MetalakeView = () => {
   const dispatch = useAppDispatch()
@@ -37,6 +37,7 @@ const MetalakeView = () => {
   useEffect(() => {
     const routeParams = {
       metalake: searchParams.get('metalake'),
+      compliance: searchParams.get('compliance'),
       catalog: searchParams.get('catalog'),
       type: searchParams.get('type'),
       schema: searchParams.get('schema'),
@@ -44,10 +45,15 @@ const MetalakeView = () => {
       fileset: searchParams.get('fileset')
     }
     if ([...searchParams.keys()].length) {
-      const { metalake, catalog, type, schema, table, fileset } = routeParams
+      const { metalake, compliance, catalog, type, schema, table, fileset } = routeParams
 
       if (paramsSize === 1 && metalake) {
         dispatch(fetchCatalogs({ init: true, page: 'metalakes', metalake }))
+        dispatch(getMetalakeDetails({ metalake }))
+      }
+
+      if (paramsSize === 2 && metalake && compliance) {
+        dispatch(fetchComplianceList({ init: true, metalake, compliance }))
         dispatch(getMetalakeDetails({ metalake }))
       }
 
@@ -84,7 +90,9 @@ const MetalakeView = () => {
                 routeParams.fileset ? `{{${routeParams.fileset}}}` : ''
               }`
             ]
-          : []
+          : routeParams.compliance
+            ? [`{{${routeParams.metalake}}}{{${routeParams.compliance}}}`]
+            : []
       )
     )
 

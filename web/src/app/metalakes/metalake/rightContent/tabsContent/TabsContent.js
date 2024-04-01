@@ -49,32 +49,16 @@ const CustomTabPanel = props => {
 }
 
 const TabsContent = () => {
-  let tableTitle = ''
   const searchParams = useSearchParams()
   const paramsSize = [...searchParams.keys()].length
+  const compliance = searchParams.get('compliance') && searchParams.get('compliance').split('_').join(' ')
   const type = searchParams.get('type')
   const [tab, setTab] = useState('table')
+  const [tableTitle, setTableTitle] = useState('')
   const isNotNeedTableTab = type && type === 'fileset' && paramsSize === 5
 
   const handleChangeTab = (event, newValue) => {
     setTab(newValue)
-  }
-
-  switch (paramsSize) {
-    case 1:
-      tableTitle = 'Catalogs'
-      break
-    case 3:
-      tableTitle = 'Schemas'
-      break
-    case 4:
-      tableTitle = type === 'fileset' ? 'Filesets' : 'Tables'
-      break
-    case 5:
-      tableTitle = 'Columns'
-      break
-    default:
-      break
   }
 
   useEffect(() => {
@@ -82,6 +66,26 @@ const TabsContent = () => {
       setTab('details')
     } else {
       setTab('table')
+    }
+
+    switch (paramsSize) {
+      case 1:
+        setTableTitle('Catalogs')
+        break
+      case 2:
+        setTableTitle(compliance)
+        break
+      case 3:
+        setTableTitle('Schemas')
+        break
+      case 4:
+        setTableTitle(type === 'fileset' ? 'Filesets' : 'Tables')
+        break
+      case 5:
+        setTableTitle('Columns')
+        break
+      default:
+        break
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

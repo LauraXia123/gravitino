@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { IconButton, Typography } from '@mui/material'
 import { Tree } from 'antd'
@@ -19,6 +19,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/hooks/useStore'
 import {
   setExpandedNodes,
   setIntoTreeNodeWithFetch,
+  setIntoComplianceTreeNodeWithFetch,
   removeExpandedNode,
   setSelectedNodes,
   setLoadedNodes,
@@ -38,6 +39,7 @@ const MetalakeTree = props => {
 
   const dispatch = useAppDispatch()
   const store = useAppSelector(state => state.metalakes)
+  const searchParams = useSearchParams()
 
   const handleClickIcon = (e, nodeProps) => {
     e.stopPropagation()
@@ -54,8 +56,10 @@ const MetalakeTree = props => {
         const [metalake, catalog, schema, fileset] = pathArr
         dispatch(getFilesetDetails({ init: true, metalake, catalog, schema, fileset }))
       }
+    } else if (nodeProps.data.node === 'dataComplianceSubTree') {
+      dispatch(setIntoComplianceTreeNodeWithFetch({ metalake }))
     } else {
-      dispatch(setIntoTreeNodeWithFetch({ key: nodeProps.data.key }))
+      dispatch(setIntoTreeNodeWithFetch({ key: nodeProps.data.key, metalakeFromRouter: searchParams.get('metalake') }))
     }
   }
 
@@ -85,7 +89,11 @@ const MetalakeTree = props => {
         return
       }
 
-      dispatch(setIntoTreeNodeWithFetch({ key }))
+      if (key === 'dataComplianceSubTree') {
+        dispatch(setIntoComplianceTreeNodeWithFetch({ metalake: searchParams.get('metalake') }))
+      } else {
+        dispatch(setIntoTreeNodeWithFetch({ key, metalakeFromRouter: searchParams.get('metalake') }))
+      }
 
       resolve()
     })
@@ -100,14 +108,18 @@ const MetalakeTree = props => {
   }
 
   const onSelect = (keys, { selected, node }) => {
-    if (!selected) {
-      dispatch(setSelectedNodes([node.key]))
+    if (!['dataCatalogSubTree', 'dataComplianceSubTree'].includes(node.key)) {
+      if (!selected) {
+        dispatch(setSelectedNodes([node.key]))
 
-      return
+        return
+      }
+
+      dispatch(setSelectedNodes(keys))
+      router.push(node.path)
+    } else {
+      onExpand(keys, { expanded: !node.expanded, node })
     }
-
-    dispatch(setSelectedNodes(keys))
-    router.push(node.path)
   }
 
   const renderIcon = nodeProps => {
@@ -164,8 +176,34 @@ const MetalakeTree = props => {
           </IconButton>
         )
 
+      case 'dataCatalogSubTree':
+      case 'dataComplianceSubTree':
+        return (
+          <IconButton
+            disableRipple={!store.selectedNodes.includes(nodeProps.data.key)}
+            size='small'
+            sx={{ color: '#666' }}
+            onClick={e => handleClickIcon(e, nodeProps)}
+            onMouseEnter={e => onMouseEnter(e, nodeProps)}
+            onMouseLeave={e => onMouseLeave(e, nodeProps)}
+          >
+            <Icon icon={isHover !== nodeProps.data.key ? 'bx:folder' : 'mdi:reload'} fontSize='inherit' />
+          </IconButton>
+        )
+
       default:
-        return <></>
+        return (
+          <IconButton
+            disableRipple={!store.selectedNodes.includes(nodeProps.data.key)}
+            size='small'
+            sx={{ color: '#666' }}
+            onClick={e => handleClickIcon(e, nodeProps)}
+            onMouseEnter={e => onMouseEnter(e, nodeProps)}
+            onMouseLeave={e => onMouseLeave(e, nodeProps)}
+          >
+            <Icon icon={isHover !== nodeProps.data.key ? 'bx:filter' : 'mdi:reload'} fontSize='inherit' />
+          </IconButton>
+        )
     }
   }
 
