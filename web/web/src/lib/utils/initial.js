@@ -256,6 +256,11 @@ export const providers = [
     ]
   },
   {
+    label: 'Lakehouse Generic',
+    value: 'lakehouse-generic',
+    defaultProps: []
+  },
+  {
     label: 'MySQL',
     value: 'jdbc-mysql',
     defaultProps: [
@@ -607,6 +612,28 @@ const relationalColumnTypeMap = {
     'timestamp_tz',
     'varchar'
   ],
+  'lakehouse-generic': [
+    'binary',
+    'boolean',
+    'byte',
+    'date',
+    'decimal',
+    'double',
+    'fixed',
+    'float',
+    'integer',
+    'interval_day',
+    'interval_year',
+    'list',
+    'long',
+    'map',
+    'short',
+    'struct',
+    'string',
+    'time',
+    'timestamp',
+    'union'
+  ],
   'jdbc-oceanbase': [
     'binary',
     'byte',
@@ -714,6 +741,22 @@ const relationalTablePropInfoMap = {
     ],
     immutable: ['merge-engine', 'rowkind.field', 'sequence.field'],
     allowDelete: true,
+    allowAdd: true
+  },
+  'lakehouse-generic': {
+    reserved: [],
+    immutable: ['format', 'location'],
+    allowDelete: true,
+    allowAdd: true
+  },
+  kafka: {
+    reserved: [],
+    immutable: ['replication-factor'],
+    allowAdd: true
+  },
+  fileset: {
+    reserved: [],
+    immutable: ['default-location-name'],
     allowAdd: true
   }
 }

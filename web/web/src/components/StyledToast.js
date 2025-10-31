@@ -20,7 +20,7 @@
 'use client'
 
 import { toast, ToastBar, Toaster } from 'react-hot-toast'
-import themeConfig from '../configs/themeConfig'
+import themeConfig from '../config/themeConfig'
 
 export default function StyledToast() {
   const { toastPosition, toastDuration } = themeConfig

@@ -22,9 +22,9 @@ import '@/lib/styles/globals.css'
 import { NavigationEvents } from './rootLayout/navigation-events'
 import Provider from '@/lib/provider'
 import Layout from './rootLayout/Layout'
-import StyledToast from '../components/StyledToast'
-
-import '../lib/icons/iconify-icons.css'
+import '@/styles/globals.css'
+import 'antd/dist/reset.css'
+import StyledToast from '@/components/StyledToast'
 
 export const metadata = {
   title: 'Gravitino',
